@@ -1,0 +1,83 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Sentiment Analysis</title>
+    <link rel="stylesheet" href="{% static 'css/sentimentResult.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Product Sentiment Analysis</h1>
+        <form method="POST" class="form-content">
+            {% csrf_token %}
+            <label for="platform">Select Platform:</label>
+            <select name="platform" id="platform" required onchange="showInputField(this.value)">
+                <option value="" selected disabled>Select a platform</option>
+                <option value="amazon">Amazon</option>
+                <option value="flipkart">Flipkart</option>
+                <option value="playstore">Playstore</option>
+            </select>
+
+            <div id="inputField" class="input-field">
+                <!-- Dynamic input field will appear here based on selection -->
+            </div>
+
+            <button type="submit">Get Sentiment Results</button>
+        </form>
+        <div class="go-home">
+            <a href="{% url 'home' %}">Home</a>
+        </div>
+
+        {% if results %}
+            <h2>Results:</h2>
+            <div class="table-container">
+                <table border="1">
+                    <tr>
+                        <th>Comment</th>
+                        <th>Sentiment Result</th>
+                    </tr>
+                    {% for comment, sentiment in results %}
+                    <tr>
+                        <td>{{ comment }}</td>
+                        <td>{{ sentiment }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <div id="viewMoreContainer" class="view-more-container">
+                <button id="viewMoreButton" class="view-more-button" onclick="toggleViewMore()">View More</button>
+            </div>
+        {% elif error %}
+            <p>{{ error }}</p>
+        {% endif %}
+    </div>
+
+    <script>
+        function showInputField(platform) {
+            let inputField = document.getElementById('inputField');
+            inputField.innerHTML = '';
+            if (platform === 'amazon') {
+                inputField.innerHTML = '<label for="asin">Put your ASIN:</label><input type="text" name="Asin" id="asin" required>';
+            } else if (platform === 'flipkart') {
+                inputField.innerHTML = '<label for="fsn">Put your FSN:</label><input type="text" name="Fsn" id="fsn" required>';
+            } else if (platform === 'playstore') {
+                inputField.innerHTML = '<label for="appid">Put your AppID:</label><input type="text" name="AppId" id="appid" required>';
+            }
+        }
+
+        function toggleViewMore() {
+            const tableContainer = document.querySelector('.table-container');
+            const viewMoreButton = document.getElementById('viewMoreButton');
+            tableContainer.classList.toggle('expanded');
+            if (tableContainer.classList.contains('expanded')) {
+                viewMoreButton.textContent = 'View Less';
+            } else {
+                viewMoreButton.textContent = 'View More';
+            }
+        }
+    </script>
+</body>
+</html>
