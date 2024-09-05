@@ -20,7 +20,7 @@
         <div class="content-container">
             <div class="upload-section">
                 <h2>Upload Filled Excel File</h2>
-                <form id="uploadForm" method="post" enctype="multipart/form-data" action="{% url 'uploadAmazon' %}">
+                <form id="uploadForm"  enctype="multipart/form-data" >
                     {% csrf_token %}
                     <input type="file" name="file" required>
                     <button id="uploadButton" type="button" onclick="uploadFile()">Upload</button>

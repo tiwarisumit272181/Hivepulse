@@ -84,61 +84,54 @@ async function uploadFile() {
     }
     
     const formData = new FormData(document.getElementById('uploadForm'));
-    document.getElementById('spinner').style.display = 'block';
-    disablePage()
+    document.getElementById('spinner').style.display = 'block';  // Show spinner at the start
+    disablePage();  // Disable the page
     try {
         const response = await fetch(uploadAmazonUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value // If needed
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             },
             body: formData
         });
-
-        // const text = await response.text(); 
-        // console.log(text);
 
         if (response.ok) {
             const data = await response.json();
             if (data.success) {
                 alert('File uploaded successfully.');
-                document.getElementById('spinner').style.display = 'inline';
-                enablePage()
+                document.getElementById('spinner').style.display = 'none';  // Hide spinner after success
+                enablePage();  // Enable the page again
                 setTimeout(() => {
                     window.location.reload();
                 }, 2000); 
-            } else {
+            } else if (!data.success) {
                 alert('Error: ' + data.error);
-                document.getElementById('spinner').style.display = 'inline';
-                enablePage()
+                document.getElementById('spinner').style.display = 'none';  // Hide spinner after failure
+                enablePage();  // Enable the page again
             }
         } else if (response.status === 401) {
             alert('Session expired. Please log in again.');
             window.location.href = '/login-page/';
         } else {
             const errorData = await response.json();
-            document.getElementById('spinner').style.display = 'inline';
-            enablePage()
+            document.getElementById('spinner').style.display = 'none';  // Hide spinner on error
+            enablePage();  // Enable the page again
             throw new Error(errorData.error || 'Failed to upload file.');
-            
         }
-        document.getElementById('spinner').style.display = 'inline';
     } catch (error) {
         console.error('Error:', error);
+        document.getElementById('spinner').style.display = 'none';  // Hide spinner on error
+        enablePage();  // Enable the page again
+
         if (error.message.includes('Cannot read properties of undefined')) {
             alert('An unexpected error occurred. Please try again later.');
-            document.getElementById('spinner').style.display = 'inline';
-             enablePage()
         } else {
             alert('An error occurred: ' + error.message);
-            document.getElementById('spinner').style.display = 'inline';
-           enablePage()
         }
-        document.getElementById('spinner').style.display = 'inline';
-        enablePage()
     }
 }
+
 
 
 
