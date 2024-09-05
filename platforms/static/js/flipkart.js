@@ -30,6 +30,7 @@ function enablePage() {
             return;
         }
         try {
+            disablePage()
             const response = await fetch(downloadTemplateUrl, {
                 method: 'GET',
                 headers: {
@@ -51,13 +52,16 @@ function enablePage() {
                 a.click();
                 a.remove();
                 window.URL.revokeObjectURL(url); // Clean up the URL object
+                enablePage();
             }  
             else {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to download');
+                enablePage();
             }
         } catch (error) {
             console.error('Error:', error);
+            enablePage();
         }
     }
     
@@ -71,6 +75,8 @@ async function uploadFile() {
         return;
     }
     const formData = new FormData(document.getElementById('uploadForm'));
+    document.getElementById('spinner').style.display='block';
+    disablePage()
     try {
         const response = await fetch(uploadFlipkartUrl, {
             method: 'POST',
@@ -85,21 +91,29 @@ async function uploadFile() {
             const data = await response.json();
             if (data.success) {
                 alert('File uploaded successfully.');
+                document.getElementById('spinner').style.display = 'none'; 
+                enablePage();
                 setTimeout(() => {
                     window.location.reload();
                 }, 2000); 
             } else {
                 alert('Error: ' + data.error);
+                document.getElementById('spinner').style.display = 'none';  // Hide spinner after failure
+                enablePage(); 
             }
         } else if (response.status === 401) {
             alert('Session expired. Please log in again.');
             window.location.href = '/login-page/';
         } else {
             const errorData = await response.json();
+            document.getElementById('spinner').style.display = 'none';  // Hide spinner after failure
+            enablePage(); 
             throw new Error(errorData.error || 'Failed to upload file.');
         }
     } catch (error) {
         console.error('Error:', error);
+        document.getElementById('spinner').style.display = 'none';  // Hide spinner on error
+        enablePage();
         if (error.message.includes('Cannot read properties of undefined')) {
             alert('An unexpected error occurred. Please try again later.');
         } else {
@@ -125,6 +139,11 @@ function runScrappingScript() {
         window.location.href = '/login-page/';
         return;
     }
+    const sessionId=document.getElementById("scrapping-session-id").value
+    if(!sessionId){
+        alert('Type your sessionId');
+        return
+    }
     isScriptRunning=true;
     disablePage();
     // Disable the button and show the spinner
@@ -139,9 +158,13 @@ function runScrappingScript() {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken  // Use the CSRF token passed from the template
         },
+        body: JSON.stringify({
+            sessionId: sessionId,
+        })
     })
     .then(response => {
         if (response.status === 401) {
+            isScriptRunning = false;
             alert('Session expired. Please log in again.');
             window.location.href = '/login-page/';
             return;
@@ -150,7 +173,7 @@ function runScrappingScript() {
             document.getElementById('scrappingScript-status').style.backgroundColor = 'red';
             throw new Error('Network response was not ok');
         }
-        document.getElementById('scrappingScript-status').style.backgroundColor = 'green';
+        document.getElementById('scrappingScript-status').style.backgroundColor = 'red';
         return response.json();
     })
     .then(data => {
@@ -191,6 +214,11 @@ function runSentimentScript(){
         window.location.href = '/login-page/';
         return;
     }
+    const sessionId=document.getElementById("sentiment-session-id").value
+    if(!sessionId){
+        alert('Type your sessionId');
+        return
+    }
     isScriptRunning=true;
     disablePage();
     document.getElementById('spinner').style.display = 'block';
@@ -202,9 +230,13 @@ function runSentimentScript(){
         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
         'Content-Type': 'application/json' // Use the CSRF token passed from the template
        },
+       body: JSON.stringify({
+        sessionId: sessionId,
+    })
     })
     .then(response => {
         if (response.status === 401) {
+            isScriptRunning=false
             alert('Session expired. Please log in again.');
             window.location.href = '/login-page/';
             return;

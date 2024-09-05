@@ -10,10 +10,15 @@ from platforms.models import review, sentimentResult, flipkartProduct  # Adjust 
 
 class Command(BaseCommand):
     help = 'Performs sentiment analysis on reviews related to flipkart products and stores the results'
+    def add_arguments(self, parser):
+        parser.add_argument('--sessionId', type=str, help='The session ID')
+        parser.add_argument('--username', type=str, help='The username')
 
     def handle(self, *args, **options):
+        sessionId = options['sessionId']
+        username = options['username']
         # Load the RoBERTa model and tokenizer
-        MODEL = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+        MODEL = "cardiffnlp/twitter-roberta-base-sentiment"
         tokenizer = AutoTokenizer.from_pretrained(MODEL)
         model = AutoModelForSequenceClassification.from_pretrained(MODEL)
 
@@ -51,8 +56,9 @@ class Command(BaseCommand):
             
             # Filter reviews related to flipkartProduct
             flipkart_product_reviews = review.objects.filter(content_type=flipkart_product_content_type)
+            review_toprocess=flipkart_product_reviews.filter(user=username,sessionId=sessionId)
 
-            for rev in flipkart_product_reviews:
+            for rev in review_toprocess:
                 # Check if this review has already been processed
                 if sentimentResult.objects.filter(review_id=rev.id).exists():
                     print(f'Sentiment already exists for review ID {rev.id}, skipping...')
@@ -74,7 +80,9 @@ class Command(BaseCommand):
                     positiveScore=roberta_result['positiveScore'],
                     neutralScore=roberta_result['neutralScore'],
                     negativeScore=roberta_result['negativeScore'],
-                    estimatedResult=estimated_result
+                    estimatedResult=estimated_result,
+                    user=username,
+                    sessionId=sessionId,
                 )
                 sentiment.save()
                 print(f'Sentiment saved for review ID {rev.id}')

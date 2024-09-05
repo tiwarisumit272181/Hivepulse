@@ -262,9 +262,21 @@ class uploadFlipkart(APIView):
                 data_rows = list(ws.iter_rows(min_row=2, values_only=True))
                 if not data_rows:
                     return JsonResponse({'success': False, 'error': 'No data filled in your Excel file.'})
+                username=request.user.username
+                session_id=datetime.now().strftime('%Y%m%d%H%M%S')
                 for row in ws.iter_rows(min_row=2, values_only=True):
                     Fsn, Brand = row
-                    flipkartProduct.objects.create(Fsn=Fsn, Brand=Brand)
+                    if Fsn and Brand:
+                        flipkartProduct.objects.create(
+                            Fsn=Fsn, 
+                            Brand=Brand,
+                            user=username,
+                            sessionId=session_id
+                            )
+                subject="Flipkart Product Upload Session ID"
+                message=f'Dear {username},\n\n Your session ID for the recent flipkart product upload is :{session_id}\n\nRegrads,\nAnalytics Team'
+                recipient_list = ['tiwarisumit272181@gmail.com','harishkumar.c@hiveminds.in']
+                send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list, fail_silently=False)
                 return JsonResponse({'success': True})
             else:
                 return JsonResponse({'success': False, 'error': 'Form is not valid'})
@@ -278,9 +290,12 @@ class runFlipkartReviewScrappingScript(APIView):
     # authentication_classes = [JWTAuthentication]
     # permission_classes = [IsAuthenticated]
     def post(self,request):
+        data = json.loads(request.body)
+        sessionId=data.get('sessionId')
+        username=request.user.username
         if request.method == 'POST':
             try:
-                call_command('flipkartScrapping')  # Ensure this matches your management command
+                call_command('flipkartScrapping',sessionId=sessionId,username=username)  # Ensure this matches your management command
                 return JsonResponse({'status': 'success', 'message': ' Flipkart Script executed successfully.'})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': str(e)})
@@ -291,9 +306,13 @@ class runFlipkartReviewSentimentScript(APIView):
     # authentication_classes = [JWTAuthentication]
     # permission_classes = [IsAuthenticated]
     def post(self,request):
+        
         if request.method == 'POST':
+            data = json.loads(request.body)#
+            sessionId=data.get('sessionId')#
+            username=request.user.username #
             try:
-                call_command('flipkartSentimentAnalysis')  # Ensure this matches your management command
+                call_command('flipkartSentimentAnalysis',sessionId=sessionId,username=username)  # Ensure this matches your management command
                 return JsonResponse({'status': 'success', 'message': ' Flipkart sentiment analysis Script executed successfully.'})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': str(e)})

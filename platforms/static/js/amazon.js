@@ -44,7 +44,7 @@ function downloadTemplate() {
             window.location.href = '/login-page/';
         }
         if (response.ok) {
-            console.log(response);
+            // console.log(response);
             return response.blob();
         }  else {
             return response.json().then(error => {
@@ -187,7 +187,7 @@ function runScrappingScript() {
         }
         if (!response.ok) {
             document.getElementById('scrappingScript-status').style.backgroundColor = 'red';
-            console.log(response)
+            // console.log(response)
             throw new Error('Network response was not ok');
         }
         document.getElementById('scrappingScript-status').style.backgroundColor = 'red';
@@ -208,7 +208,7 @@ function runScrappingScript() {
         } else if (data.status === 'error') {
             // console.log(data)
             document.getElementById('run-scrappingScript-btn').disabled = false;  // Re-enable button if an error occurs
-            document.getElementById('scrappingScript-status').style.backgroundColor = 'pink';
+            document.getElementById('scrappingScript-status').style.backgroundColor = 'orange';
         }
         enablePage();
     })
@@ -252,6 +252,7 @@ function runSentimentScript(){
     })
     .then(response => {
         if (response.status === 401) {
+            isScriptRunning=false
             alert('Session expired. Please log in again.');
             window.location.href = '/login-page/';
             return;
