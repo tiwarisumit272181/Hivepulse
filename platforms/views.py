@@ -366,9 +366,21 @@ class uploadPlaystore(APIView):
                 data_rows = list(ws.iter_rows(min_row=2, values_only=True))
                 if not data_rows:
                     return JsonResponse({'success': False, 'error': 'No data filled in your Excel file.'})
+                username = request.user.username
+                # Generate session ID as a string representation of the current time
+                session_id = datetime.now().strftime('%Y%m%d%H%M%S') 
                 for row in ws.iter_rows(min_row=2, values_only=True):
                     AppId, Brand = row
-                    playstoreProduct.objects.create(AppId=AppId, Brand=Brand)
+                    playstoreProduct.objects.create(
+                        AppId=AppId,
+                        Brand=Brand,
+                        user=username,  # Set the user
+                        sessionId=session_id 
+                        )
+                subject = 'Playstore Product Upload Session ID'
+                message = f'Dear {username},\n\nYour session ID for the recent Amazon product upload is: {session_id}\n\nRegards,\nYour Team'
+                recipient_list = ['tiwarisumit272181@gmail.com','harishkumar.c@hiveminds.in']
+                send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list, fail_silently=False)
                 return JsonResponse({'success': True})
             else:
                 return JsonResponse({'success': False, 'error': 'Form is not valid'})
@@ -382,8 +394,11 @@ class runPlaystoreReviewScrappingScript(APIView):
     # permission_classes = [IsAuthenticated]
     def post(self,request):
         if request.method == 'POST':
+            data = json.loads(request.body)
+            sessionId=data.get('sessionId')
+            username=request.user.username
             try:
-                call_command('playstoreScrapping')  # Ensure this matches your management command
+                call_command('playstoreScrapping',sessionId=sessionId,username=username)  # Ensure this matches your management command
                 return JsonResponse({'status': 'success', 'message': ' playstore Script executed successfully.'})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': str(e)})
@@ -396,8 +411,11 @@ class runPlaystoreReviewSentimentScript(APIView):
     # permission_classes = [IsAuthenticated]
     def post(self,request):
         if request.method == 'POST':
+            data = json.loads(request.body)#
+            sessionId=data.get('sessionId')#
+            username=request.user.username #
             try:
-                call_command('playstoreSentimentAnalysis')  # Ensure this matches your management command
+                call_command('playstoreSentimentAnalysis',sessionId=sessionId,username=username)  # Ensure this matches your management command
                 return JsonResponse({'status': 'success', 'message': ' Playstore sentiment analysis Script executed successfully.'})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': str(e)})

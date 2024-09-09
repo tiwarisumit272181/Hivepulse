@@ -75,7 +75,8 @@ async function uploadFile() {
     }
 
     const formData = new FormData(document.getElementById('uploadForm'));
-
+    document.getElementById('spinner').style.display='block';
+    disablePage()
     try {
         const response = await fetch(uploadPlaystoreUrl, {
             method: 'POST',
@@ -90,11 +91,15 @@ async function uploadFile() {
             const data = await response.json();
             if (data.success) {
                 alert('File uploaded successfully.');
+                document.getElementById('spinner').style.display = 'none'; 
+                enablePage();
                 setTimeout(() => {
                     window.location.reload();
                 }, 2000); 
             } else {
                 alert('Error: ' + data.error);
+                document.getElementById('spinner').style.display = 'none';  // Hide spinner after failure
+                enablePage(); 
             }
         } else if (response.status === 401) {
             alert('Session expired. Please log in again.');
@@ -105,6 +110,8 @@ async function uploadFile() {
         }
     } catch (error) {
         console.error('Error:', error);
+        document.getElementById('spinner').style.display = 'none';  // Hide spinner after failure
+        enablePage();
         if (error.message.includes('Cannot read properties of undefined')) {
             alert('An unexpected error occurred. Please try again later.');
         } else {
@@ -130,6 +137,11 @@ function runScrappingScript() {
         window.location.href = '/login-page/';
         return;
     }
+    const sessionId=document.getElementById("scrapping-session-id").value
+    if(!sessionId){
+        alert('Type your sessionId');
+        return
+    }
     isScriptRunning=true;
     disablePage();
     // Disable the button and show the spinner
@@ -144,6 +156,9 @@ function runScrappingScript() {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
             'Content-Type': 'application/json'
         },
+        body :JSON.stringify({
+            sessionId:sessionId,
+        })
     })
     .then(response => {
         if (response.status === 401) {
@@ -194,6 +209,11 @@ function runSentimentScript(){
         window.location.href = '/login-page/';
         return;
     }
+    const sessionId=document.getElementById("sentiment-session-id").value
+    if(!sessionId){
+        alert('Type your sessionId');
+        return
+    }
     isScriptRunning=true;
     disablePage();
     document.getElementById('spinner').style.display = 'block';
@@ -205,6 +225,9 @@ function runSentimentScript(){
         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
         'Content-Type': 'application/json'
        },
+       body:JSON.stringify({
+        sessionId:sessionId
+    })
     })
     .then(response => {
         if (response.status === 401) {

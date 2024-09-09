@@ -55,11 +55,15 @@
     <!-- Script Execution Buttons -->
     <div class="script-container">
         <div class="script-section">
+            <label for="scrapping-session-id">Session ID:</label>
+            <input type="text" id="scrapping-session-id" name="scrapping-session-id" placeholder="Enter Session ID">
             <button id="run-scrappingScript-btn" onclick="runScrappingScript()">Run Script for processing your uploaded Asins</button>
             <p id="scrappingScript-status"></p>
         </div>
         
         <div class="script-section">
+            <label for="sentiment-session-id">Session ID:</label>
+            <input type="text" id="sentiment-session-id" name="sentiment-session-id" placeholder="Enter Session ID">
             <button id="run-sentimentScript-btn" onclick="runSentimentScript()">Run Script for processing getting the sentiment for your reviews</button>
             <p id="sentimentScript-status"></p>
         </div>

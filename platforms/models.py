@@ -36,7 +36,8 @@ class playstoreProduct(models.Model):
     Brand = models.CharField(max_length=500)
     Status = models.CharField(max_length=50,  default="pending")
     Date = models.DateTimeField(auto_now_add=True)
-
+    user = models.CharField(max_length=100) 
+    sessionId = models.CharField(max_length=100) 
     def __str__(self):
         return f"{self.AppId} - {self.Brand}"
 

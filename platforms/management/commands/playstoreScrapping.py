@@ -7,11 +7,15 @@ from platforms.models import playstoreProduct, review
 
 class Command(BaseCommand):
     help = 'Fetch Google Play Store reviews and save them to the database'
+    def add_arguments(self, parser):
+        parser.add_argument('--sessionId', type=str, help='The session ID')
+        parser.add_argument('--username', type=str, help='The username')
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args, **options):
         # Fetch AppIds with 'pending' status
         appid_list = playstoreProduct.objects.filter(Status='pending').values_list('AppId', flat=True).distinct()
-        
+        sessionId = options['sessionId']
+        username = options['username']
         for AppId in appid_list:
             self.stdout.write(self.style.SUCCESS(f'Processing AppId: {AppId}'))
             
@@ -36,7 +40,7 @@ class Command(BaseCommand):
                     rating = review_data.get('score', 0)
                     
                     # Save each review as a separate entry in the database
-                    playstore_product_instance = playstoreProduct.objects.filter(AppId=AppId, Status='pending').first()
+                    playstore_product_instance = playstoreProduct.objects.filter(AppId=AppId, Status='pending', sessionId=sessionId, user=username).first()
                     if playstore_product_instance:
                         content_type = ContentType.objects.get_for_model(playstoreProduct)
                         review_instance = review.objects.create(
@@ -45,11 +49,13 @@ class Command(BaseCommand):
                             reviewContent=review_content,
                             rating=rating,
                             created_at=review_date,
+                            user=username,
+                            sessionId=sessionId,
                         )
                         
 
                 # Update product status
-                playstoreProduct.objects.filter(AppId=AppId).update(Status='completed')
+                playstoreProduct.objects.filter(AppId=AppId, sessionId=sessionId, user=username).update(Status='completed')
                 self.stdout.write(self.style.SUCCESS(f'Status updated for {AppId}'))
 
             except Exception as e:
