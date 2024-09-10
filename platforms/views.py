@@ -427,46 +427,58 @@ class runPlaystoreReviewSentimentScript(APIView):
 from django.shortcuts import render
 from django.contrib.contenttypes.models import ContentType
 from platforms.models import amazonProduct, flipkartProduct, playstoreProduct, review
+
 def product_sentiment_view(request):
     results = []
     error = None
+    platform = request.POST.get('platform', '')
+    session_id = request.POST.get('sessionId', '')
 
     if request.method == 'POST':
         platform = request.POST.get('platform')
-        identifier = None
-
-        # Determine which platform was selected and retrieve the corresponding identifier
-        if platform == 'amazon':
-            identifier = request.POST.get('Asin')
-            model_class = amazonProduct
-            identifier_field = 'Asin'
-        elif platform == 'flipkart':
-            identifier = request.POST.get('Fsn')
-            model_class = flipkartProduct
-            identifier_field = 'Fsn'
-        elif platform == 'playstore':
-            identifier = request.POST.get('AppId')
-            model_class = playstoreProduct
-            identifier_field = 'AppId'
+        identifier = request.POST.get('sessionId')
+        platform_mapping = {
+            'amazon': (amazonProduct, 'Asin'),
+            'flipkart': (flipkartProduct, 'Fsn'),
+            'playstore': (playstoreProduct, 'AppId'),
+        }
+        
+        if platform in platform_mapping:
+            model_class, id_field = platform_mapping[platform]
         else:
             error = "Invalid platform selected."
-
+        
         if identifier and not error:
             try:
-                # Use filter to get all products that match the identifier and status
-                products = model_class.objects.filter(**{identifier_field: identifier, 'Status': 'completed'})
+                products = model_class.objects.filter(sessionId=identifier, Status='completed')
+                
                 if not products.exists():
                     error = f"No completed product with the identifier {identifier} found in {platform.capitalize()}."
                 else:
                     for product in products:
+                        product_id = getattr(product, id_field)
+                        product_Brand = getattr(product, 'Brand')
+                        
                         content_type = ContentType.objects.get_for_model(model_class)
 
-                        # Get all reviews and their sentiment results for each product
-                        reviews_queryset = review.objects.filter(content_type=content_type, object_id=product.id)
+                        reviews_queryset = review.objects.filter(
+                            content_type=content_type, 
+                            object_id=product.id
+                        )
+                        
                         for rev in reviews_queryset:
                             sentiment_results = rev.sentimentresult_set.all()
                             for sentiment in sentiment_results:
-                                results.append((rev.reviewContent, sentiment.estimatedResult))
+                                results.append((
+                                    product_id,
+                                    product_Brand,
+                                    rev.reviewContent, 
+                                    sentiment.estimatedResult,
+                                    rev.rating, 
+                                    round(sentiment.positiveScore, 3), 
+                                    round(sentiment.neutralScore, 3), 
+                                    round(sentiment.negativeScore, 3),
+                                ))
 
                 if not results:
                     error = "No comments or sentiment results found for the provided identifier."
@@ -474,4 +486,104 @@ def product_sentiment_view(request):
             except model_class.DoesNotExist:
                 error = f"Product with the provided identifier does not exist in the {platform.capitalize()} platform or is not yet completed."
 
-    return render(request, 'platforms/product_sentiment.html', {'results': results, 'error': error})
+    return render(request, 'platforms/product_sentiment.html', {
+        'results': results,
+        'error': error,
+        'platform': platform,
+        'sessionId': session_id
+    })
+
+
+#----------------------------------------------------------------------------------------------
+
+# class downloadSentimentBySessionId(APIView):
+#     # authentication_classes = [JWTAuthentication]
+#     # permission_classes = [IsAuthenticated]
+#     def post(self,request):
+#         if request.method == 'POST':
+#             # data = json.loads(request.body)
+#             # sessionId=data.get('sessionId')
+#             # username=request.user.username
+#             try:
+#                 workbook = Workbook()
+#                 worksheet = workbook.active
+#                 # Define the column names
+#                 column_names = ['AppId', 'Brand']
+#                 # Write the column names to the first row 
+#                 for column_index, column_name in enumerate(column_names, start=1):
+#                     cell = worksheet.cell(row=1, column=column_index, value=column_name)
+#                 # Create the HttpResponse object with the appropriate headers
+#                 response = HttpResponse(
+#                     content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+#                 )
+#                 response['Content-Disposition'] = 'attachment; filename=excel_template_playstore.xlsx'
+
+#                 # Save the workbook to the response
+#                 workbook.save(response)
+
+#                 return response
+#             except Exception as e:
+#                 return JsonResponse({'status': 'error', 'message': str(e)})
+#         return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+
+
+import pandas as pd
+from django.http import HttpResponse
+from django.contrib.contenttypes.models import ContentType
+from platforms.models import amazonProduct, flipkartProduct, playstoreProduct, review
+
+def download_excel(request):
+    platform = request.POST.get('platform')
+    identifier = request.POST.get('sessionId')
+    
+    platform_mapping = {
+        'amazon': (amazonProduct, 'Asin'),
+        'flipkart': (flipkartProduct, 'Fsn'),
+        'playstore': (playstoreProduct, 'AppId'),
+    }
+
+    model_class, id_field = platform_mapping.get(platform, (None, None))
+
+    if model_class and identifier:
+        products = model_class.objects.filter(sessionId=identifier, Status='completed')
+        data = []
+        
+        for product in products:
+            product_id = getattr(product, id_field)
+            product_Brand = getattr(product, 'Brand')
+
+            content_type = ContentType.objects.get_for_model(model_class)
+            reviews_queryset = review.objects.filter(
+                content_type=content_type, 
+                object_id=product.id
+            )
+
+            for rev in reviews_queryset:
+                sentiment_results = rev.sentimentresult_set.all()
+                for sentiment in sentiment_results:
+                    data.append({
+                        'ID': product_id,
+                        'Brand': product_Brand,
+                        'Comment': rev.reviewContent,
+                        'Sentiment Result': sentiment.estimatedResult,
+                        'Rating': rev.rating,
+                        'Positive Score': round(sentiment.positiveScore, 3),
+                        'Neutral Score': round(sentiment.neutralScore, 3),
+                        'Negative Score': round(sentiment.negativeScore, 3),
+                    })
+
+        if data:
+            df = pd.DataFrame(data)
+            response = HttpResponse(content_type='application/vnd.ms-excel')
+            response['Content-Disposition'] = 'attachment; filename="sentiment_results.xlsx"'
+            df.to_excel(response, index=False)
+            return response
+        else:
+            return HttpResponse("No data found for the provided identifier.")
+    return HttpResponse("Invalid platform/session or no identifier provided.")
+
+
+
+
+

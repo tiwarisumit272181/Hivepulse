@@ -67,7 +67,7 @@
         </div>
         <div class="menu">
             <a id="loginLink" href="{% url 'loginPage' %}">Login</a>
-            <a id="getSentimentResultButton" href="{% url 'product_sentiment_view' %}">GetSentimentResult</a>
+            <a id="getSentimentResultButton" href="{% url 'product_sentiment_view' %}">Sentiment-Score</a>
             <span id="username" class="username"></span>
             <a id="logoutButton" class="logout-button" href="#" style="display:none;">Logout</a>
         </div>
@@ -92,11 +92,11 @@
         <div class="footer">
             <div class="form-container">
                 <h2>Submit generated ID for Sentiment Analysis Report:</h2>
-                <form id="myForm" method="post">
+                <form id="sentiment-form" method="post">
                     {% csrf_token %}
                     <label for="id_input">Enter ID:</label><br>
-                    <input type="text" id="id_input" name="id_input" required><br><br>
-                    <button type="submit">Submit</button>
+                    <input type="text" id="sentiment-session-id" name="id_input" required><br><br>
+                    <button id="getSentimentBYSession" type="submit">Submit</button>
                 </form>
             </div>
         </div>
@@ -122,6 +122,11 @@
 
         window.location.href = url;
     }
+//     document.getElementById("sentiment-form").addEventListener('submit', function(event) {
+//          event.preventDefault(); // Prevent the form from submitting the traditional way and causing a page refresh
+//          downloadSentiment(); // Call your function to handle the operation
+//      });
+
 </script>
 
 

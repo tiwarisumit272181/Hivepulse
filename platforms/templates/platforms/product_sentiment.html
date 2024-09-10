@@ -1,4 +1,3 @@
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -30,29 +29,52 @@
         <div class="go-home">
             <a href="{% url 'home' %}">Home</a>
         </div>
-
         {% if results %}
-            <h2>Results:</h2>
-            <div class="table-container">
-                <table border="1">
-                    <tr>
-                        <th>Comment</th>
-                        <th>Sentiment Result</th>
-                    </tr>
-                    {% for comment, sentiment in results %}
-                    <tr>
-                        <td>{{ comment }}</td>
-                        <td>{{ sentiment }}</td>
-                    </tr>
-                    {% endfor %}
-                </table>
-            </div>
-            <div id="viewMoreContainer" class="view-more-container">
-                <button id="viewMoreButton" class="view-more-button" onclick="toggleViewMore()">View More</button>
-            </div>
-        {% elif error %}
-            <p>{{ error }}</p>
-        {% endif %}
+    <h2>Results:</h2>
+    
+    <!-- Download button at the top -->
+    <form action="{% url 'download_excel' %}" method="POST" style="margin-bottom: 20px;">
+        {% csrf_token %}
+        <input type="hidden" name="platform" value="{{ platform }}">
+        <input type="hidden" name="sessionId" value="{{ sessionId }}">
+        <button type="submit" class="download-button">Download as Excel</button>
+    </form>
+
+    <div class="table-container">
+        <table border="1">
+            <tr>
+                <th>ID</th>
+                <th>Brand</th>
+                <th>Comment</th>
+                <th>Sentiment Result</th>
+                <th>Rating</th>
+                <th>Positive Score</th>
+                <th>Neutral Score</th>
+                <th>Negative Score</th>
+            </tr>
+            {% for ID, Brand, comment, sentiment, rating, positiveScore, neutralScore, negativeScore in results %}
+            <tr>
+                <td>{{ ID }}</td>
+                <td>{{ Brand }}</td>
+                <td>{{ comment }}</td>
+                <td>{{ sentiment }}</td>
+                <td>{{ rating }}</td>
+                <td>{{ positiveScore }}</td>
+                <td>{{ neutralScore }}</td>
+                <td>{{ negativeScore }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
+    <div id="viewMoreContainer" class="view-more-container">
+        <button id="viewMoreButton" class="view-more-button" onclick="toggleViewMore()">View More</button>
+    </div>
+{% elif error %}
+    <p>{{ error }}</p>
+{% endif %}
+
+    
     </div>
 
     <script>
@@ -60,11 +82,11 @@
             let inputField = document.getElementById('inputField');
             inputField.innerHTML = '';
             if (platform === 'amazon') {
-                inputField.innerHTML = '<label for="asin">Put your ASIN:</label><input type="text" name="Asin" id="asin" required>';
+                inputField.innerHTML = '<label for="sessionId">Put your sessionId:</label><input type="text" name="sessionId" id="sessionId" required>';
             } else if (platform === 'flipkart') {
-                inputField.innerHTML = '<label for="fsn">Put your FSN:</label><input type="text" name="Fsn" id="fsn" required>';
+                inputField.innerHTML = '<label for="sessionId">Put your sessionId:</label><input type="text" name="sessionId" id="sessionId" required>';
             } else if (platform === 'playstore') {
-                inputField.innerHTML = '<label for="appid">Put your AppID:</label><input type="text" name="AppId" id="appid" required>';
+                inputField.innerHTML = '<label for="sessionId">Put your sessionId:</label><input type="text" name="sessionId" id="sessionId" required>';
             }
         }
 
@@ -81,3 +103,4 @@
     </script>
 </body>
 </html>
+
