@@ -67,6 +67,7 @@
         </div>
         <div class="menu">
             <a id="loginLink" href="{% url 'loginPage' %}">Login</a>
+           
             <a id="getSentimentResultButton" href="{% url 'product_sentiment_view' %}">Sentiment-Score</a>
             <span id="username" class="username"></span>
             <a id="logoutButton" class="logout-button" href="#" style="display:none;">Logout</a>
@@ -122,6 +123,7 @@
 
         window.location.href = url;
     }
+
 //     document.getElementById("sentiment-form").addEventListener('submit', function(event) {
 //          event.preventDefault(); // Prevent the form from submitting the traditional way and causing a page refresh
 //          downloadSentiment(); // Call your function to handle the operation

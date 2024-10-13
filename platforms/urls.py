@@ -21,7 +21,12 @@ urlpatterns = [
     path('run-flipkartScript-sentiment/' , views.runFlipkartReviewSentimentScript.as_view(),name='runFlipkartReviewSentimentScript'),
     path('run-playstoreScript-scrapping/' ,views.runPlaystoreReviewScrappingScript.as_view(), name='runPlaystoreReviewScrappingScript'),
     path('run-playstoreScript-sentiment/' , views.runPlaystoreReviewSentimentScript.as_view(),name='runPlaystoreReviewSentimentScript'),
-    # path('download-sentiment-session/',views.downloadSentimentBySessionId.as_view(),name='downloadSentimentBySessionId'),
     path('product-sentiment/', views.product_sentiment_view, name='product_sentiment_view'),
     path('download-excel/', views.download_excel, name='download_excel'),
+    #---------------experiment----------------------------------------------------
+    path('session-input-playstore/', views.sessionInput, name='sessionInput'),
+    # path('graph/', views.getDataForPlaystoreGraph, name='getDataForPlaystoreGraph'),
+    path('get-data/',views.getDataforPlaystoreCategorization,name='getDataforPlaystoreCategorization')
+    
 ]
+

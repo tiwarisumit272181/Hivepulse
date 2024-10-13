@@ -4,7 +4,7 @@ from openpyxl import Workbook
 from datetime import datetime
 from openpyxl.styles import Protection
 from .forms import ExcelUploadForm
-from .models import amazonProduct, flipkartProduct, playstoreProduct
+from .models import amazonProduct, flipkartProduct, playstoreProduct,sentimentResult,review
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from rest_framework.permissions import IsAuthenticated
@@ -80,7 +80,8 @@ def verify_token(request):
 
 
 # redirect code start-------------------------------------------------------
-
+def session_input_view(request):
+    return render(request, 'platforms/graph.html')
 
 def loginPage(request):
     return render(request, 'platforms/login.html')
@@ -377,11 +378,14 @@ class uploadPlaystore(APIView):
                         user=username,  # Set the user
                         sessionId=session_id 
                         )
-                subject = 'Playstore Product Upload Session ID'
-                message = f'Dear {username},\n\nYour session ID for the recent Amazon product upload is: {session_id}\n\nRegards,\nYour Team'
-                recipient_list = ['tiwarisumit272181@gmail.com','harishkumar.c@hiveminds.in']
-                send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list, fail_silently=False)
-                return JsonResponse({'success': True})
+                try:
+                    subject = 'Playstore Product Upload Session ID'
+                    message = f'Dear {username},\n\nYour session ID for the recent Amazon product upload is: {session_id}\n\nRegards,\nYour Team'
+                    recipient_list = ['tiwarisumit272181@gmail.com','harishkumar.c@hiveminds.in']
+                    send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list, fail_silently=False)
+                    return JsonResponse({'success': True})
+                except:
+                    return JsonResponse({'success':False,'error':'your email is not responding'})
             else:
                 return JsonResponse({'success': False, 'error': 'Form is not valid'})
         else:
@@ -482,9 +486,10 @@ def product_sentiment_view(request):
 
                 if not results:
                     error = "No comments or sentiment results found for the provided identifier."
-
+                
             except model_class.DoesNotExist:
                 error = f"Product with the provided identifier does not exist in the {platform.capitalize()} platform or is not yet completed."
+                
 
     return render(request, 'platforms/product_sentiment.html', {
         'results': results,
@@ -495,39 +500,6 @@ def product_sentiment_view(request):
 
 
 #----------------------------------------------------------------------------------------------
-
-# class downloadSentimentBySessionId(APIView):
-#     # authentication_classes = [JWTAuthentication]
-#     # permission_classes = [IsAuthenticated]
-#     def post(self,request):
-#         if request.method == 'POST':
-#             # data = json.loads(request.body)
-#             # sessionId=data.get('sessionId')
-#             # username=request.user.username
-#             try:
-#                 workbook = Workbook()
-#                 worksheet = workbook.active
-#                 # Define the column names
-#                 column_names = ['AppId', 'Brand']
-#                 # Write the column names to the first row 
-#                 for column_index, column_name in enumerate(column_names, start=1):
-#                     cell = worksheet.cell(row=1, column=column_index, value=column_name)
-#                 # Create the HttpResponse object with the appropriate headers
-#                 response = HttpResponse(
-#                     content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-#                 )
-#                 response['Content-Disposition'] = 'attachment; filename=excel_template_playstore.xlsx'
-
-#                 # Save the workbook to the response
-#                 workbook.save(response)
-
-#                 return response
-#             except Exception as e:
-#                 return JsonResponse({'status': 'error', 'message': str(e)})
-#         return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
-
-
-
 import pandas as pd
 from django.http import HttpResponse
 from django.contrib.contenttypes.models import ContentType
@@ -583,6 +555,162 @@ def download_excel(request):
             return HttpResponse("No data found for the provided identifier.")
     return HttpResponse("Invalid platform/session or no identifier provided.")
 
+
+#---------------------------------------------------------------------------experiment-----------------------------------------------------
+
+
+from collections import defaultdict
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import logging
+
+@csrf_exempt
+def sessionInput(request):
+    return render(request, 'platforms/session_input.html')
+# @csrf_exempt
+def getDataForGraph(request):
+    if request.method == 'GET':  # Ensure it's a POST request
+        return JsonResponse({'error': 'wrong request method'}, status=400)
+    body = json.loads(request.body)
+    sessionId = body.get('sessionId')  # Get sessionId from POST data
+    if not sessionId:
+        return JsonResponse({'error': 'sessionId is required'}, status=400)
+
+    try:
+        # Query for products based on the sessionId
+        amazon_product = amazonProduct.objects.filter(sessionId=sessionId)
+        amazon_product_type = ContentType.objects.get_for_model(amazonProduct)
+    except amazonProduct.DoesNotExist:
+        return JsonResponse({'error': 'No products found for the given sessionId'}, status=404)
+    except Exception as e:
+        logging.error(f"Error fetching products or content type: {e}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+    # Dictionary to store counts of positive, negative, and neutral reviews for each ASIN
+    asin_sentiment_counts = defaultdict(lambda: {'positiveCount': 0, 'negativeCount': 0, 'neutralCount': 0})
+
+    # Iterate through products and reviews
+    try:
+        for product in amazon_product:
+            product_reviews = review.objects.filter(content_type=amazon_product_type, object_id=product.id)
+            review_ids = [review.id for review in product_reviews]
+            sentiments = sentimentResult.objects.filter(review_id__in=review_ids)
+
+            for sentiment in sentiments:
+                if sentiment.estimatedResult == 'Positive':
+                    asin_sentiment_counts[product.Asin]['positiveCount'] += 1
+                elif sentiment.estimatedResult == 'Negative':
+                    asin_sentiment_counts[product.Asin]['negativeCount'] += 1
+                elif sentiment.estimatedResult == 'Neutral':
+                    asin_sentiment_counts[product.Asin]['neutralCount'] += 1
+    except Exception as e:
+        logging.error(f"Error processing reviews or sentiments: {e}")
+        return JsonResponse({'error': 'An error occurred while processing reviews and sentiments'}, status=500)
+
+    # Prepare data to send to frontend
+    data = []
+    for asin, counts in asin_sentiment_counts.items():
+        data.append({
+            'Asin': asin,
+            'positiveCount': counts['positiveCount'],
+            'negativeCount': counts['negativeCount'],
+            'neutralCount': counts['neutralCount']
+        })
+
+    return JsonResponse({'data': data})
+
+
+#----------------------------------------------------------------------------------------------------------
+
+# reviews/views.py
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .models import playstoreProduct, review, sentimentResult
+from django.contrib.contenttypes.models import ContentType
+from collections import defaultdict
+from .utils import assign_category, CATEGORY_KEYWORDS
+
+@csrf_exempt
+def getDataforPlaystoreCategorization(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST method is allowed'}, status=400)
+    try:
+        body = json.loads(request.body)
+        sessionId = body.get('sessionId')
+        if not sessionId:
+            return JsonResponse({'error': 'sessionId is required'}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
+    try:
+        # Fetch all playstoreProduct instances related to the given sessionId
+        playstore_products = playstoreProduct.objects.filter(sessionId=sessionId)
+        # print(playstore_products)
+        if not playstore_products.exists():
+            return JsonResponse({'error': 'No apps found for the provided sessionId.'}, status=404)
+        
+        # Prepare response data
+        response_data = []
+
+        # For each AppId, get the corresponding reviews and sentiments
+        for product in playstore_products:
+            appId = product.AppId
+            total_positive = total_negative = total_neutral = 0
+
+            # Initialize sentiment counts per category
+            category_sentiments = defaultdict(lambda: {'positive': 0, 'negative': 0, 'neutral': 0})
+
+            # Get the content type for playstoreProduct
+            product_type = ContentType.objects.get_for_model(playstoreProduct)
+
+            # Fetch all reviews for this AppId
+            reviews = review.objects.filter(content_type=product_type, object_id=product.id)
+
+            for rev in reviews:
+                # Fetch sentiment result from sentimentResult model (already stored)
+                sentiment = sentimentResult.objects.filter(review=rev).first()
+                sentiment_result = sentiment.estimatedResult.lower() if sentiment else 'neutral'
+
+                # Categorize the review based on its content
+                category = assign_category(rev.reviewContent, CATEGORY_KEYWORDS)
+
+                # Update category-wise sentiment counts using the stored sentiment result
+                if sentiment_result == 'positive':
+                    total_positive += 1
+                    category_sentiments[category]['positive'] += 1
+                elif sentiment_result == 'negative':
+                    total_negative += 1
+                    category_sentiments[category]['negative'] += 1
+                else:
+                    total_neutral += 1
+                    category_sentiments[category]['neutral'] += 1
+
+            # Add aggregated data for this app to the response
+            response_data.append({
+                'appId': product.Brand,
+                'totalPositive': total_positive,
+                'totalNegative': total_negative,
+                'totalNeutral': total_neutral,
+                'category': category_sentiments
+            })
+
+        return JsonResponse({'data': response_data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)
+    
+    def getGenralDataToVisualize(request):
+        if req.method!=POST:
+            return JsonResponse({'error':"method not allowed"},status=400)
+        try:
+            body=load(request.body)
+            sessionId=body.get('sessionId')
+            
+        except Exception as e:
+            return JsonResponse({"error":f"fail to process request : {str(e)}"}) 
+            
 
 
 
