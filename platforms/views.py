@@ -33,6 +33,8 @@ from django.conf import settings
 # user registration end------------------------------------------------------------------------------------------------------------------
 
 # user login -------------------------------------------------------------------------------------------
+from django.utils import timezone
+from django.contrib.auth.models import User
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
@@ -43,6 +45,8 @@ def login(request):
         user = authenticate(username=username, password=password)
         if user is not None:
             refresh = RefreshToken.for_user(user)
+            user.last_login = timezone.now()
+            user.save(update_fields=['last_login'])
             return JsonResponse({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
@@ -431,7 +435,7 @@ class runPlaystoreReviewSentimentScript(APIView):
 from django.shortcuts import render
 from django.contrib.contenttypes.models import ContentType
 from platforms.models import amazonProduct, flipkartProduct, playstoreProduct, review
-
+# @ login_required
 def product_sentiment_view(request):
     results = []
     error = None
@@ -504,7 +508,7 @@ import pandas as pd
 from django.http import HttpResponse
 from django.contrib.contenttypes.models import ContentType
 from platforms.models import amazonProduct, flipkartProduct, playstoreProduct, review
-
+# @ login_required
 def download_excel(request):
     platform = request.POST.get('platform')
     identifier = request.POST.get('sessionId')
@@ -567,7 +571,11 @@ import logging
 @csrf_exempt
 def sessionInput(request):
     return render(request, 'platforms/session_input.html')
-# @csrf_exempt
+def sessionInput2(request):
+    return render(request, 'platforms/session_input2.html')
+def sessionInput3(request):
+    return render(request, 'platforms/session_input3.html')
+# @ login_required
 def getDataForGraph(request):
     if request.method == 'GET':  # Ensure it's a POST request
         return JsonResponse({'error': 'wrong request method'}, status=400)
@@ -632,7 +640,7 @@ from django.contrib.contenttypes.models import ContentType
 from collections import defaultdict
 from .utils import assign_category, CATEGORY_KEYWORDS
 
-@csrf_exempt
+# @ login_required
 def getDataforPlaystoreCategorization(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST method is allowed'}, status=400)
@@ -701,15 +709,6 @@ def getDataforPlaystoreCategorization(request):
     except Exception as e:
         return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)
     
-    def getGenralDataToVisualize(request):
-        if req.method!=POST:
-            return JsonResponse({'error':"method not allowed"},status=400)
-        try:
-            body=load(request.body)
-            sessionId=body.get('sessionId')
-            
-        except Exception as e:
-            return JsonResponse({"error":f"fail to process request : {str(e)}"}) 
             
 
 

@@ -24,9 +24,10 @@ urlpatterns = [
     path('product-sentiment/', views.product_sentiment_view, name='product_sentiment_view'),
     path('download-excel/', views.download_excel, name='download_excel'),
     #---------------experiment----------------------------------------------------
-    path('session-input-playstore/', views.sessionInput, name='sessionInput'),
+    path('session-input-playstore1/', views.sessionInput, name='sessionInput'),
+    path('session-input-playstore2/', views.sessionInput2, name='sessionInput2'),
+    path('session-input-playstore3/', views.sessionInput3, name='sessionInput3'),
     # path('graph/', views.getDataForPlaystoreGraph, name='getDataForPlaystoreGraph'),
-    path('get-data/',views.getDataforPlaystoreCategorization,name='getDataforPlaystoreCategorization')
-    
+    path('get-data/',views.getDataforPlaystoreCategorization,name='getDataforPlaystoreCategorization'),    
 ]
 

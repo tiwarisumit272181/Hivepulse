@@ -5,36 +5,83 @@
     <title>Sentiment Analysis Chart</title>
     <script src="https://cdn.jsdelivr.net/npm/ag-charts-community/dist/ag-charts-community.min.js"></script>
     <style>
-        .chart-container-wrapper {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));  /* Flexible columns */
-            gap: 20px;
-            padding: 20px;
+        /* General Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .chart-container-wrapper > div {
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 20px;
+        body {
+            font-family: Arial, sans-serif;
             background-color: #f9f9f9;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-            height: 400px;  /* Adjusted height for vertical stacking */
-        }
-
-        .chart-container-wrapper > div:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            color: #333;
+            padding: 20px;
         }
 
         h1 {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
+            color: #4CAF50;
         }
 
+        /* Form Styles */
         form {
-            text-align: center;
-            margin-bottom: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        form label {
+            font-size: 18px;
+            margin-right: 10px;
+            color: #333;
+        }
+
+        form input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 300px;
+        }
+
+        form button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        form button:hover {
+            background-color: #45a049;
+        }
+
+        /* Chart Container Styles */
+
+
+        /* Media Queries for Responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            form input[type="text"] {
+                width: 200px;
+            }
+
+            .chart-container-wrapper > div {
+                max-width: 100%; /* Ensure full width on smaller screens */
+            }
         }
     </style>
 </head>
@@ -85,7 +132,6 @@
         }
 
         function renderMultipleCharts(data) {
-            console.log(data);
             const categories = ['customerSupport', 'deliveryRelated', 'qualityOfProduct', 'appExperience', 'price', 'paymentRelated', 'other'];
 
             const chartContainer = document.getElementById('chartContainer');
@@ -94,11 +140,9 @@
             categories.forEach(category => {
                 const chartData = [];
 
-                // Prepare data for the chart
                 data?.forEach(app => {
                     const totalReviews = app.totalPositive + app.totalNegative + app.totalNeutral;
 
-                    // Skip apps with no reviews
                     if (totalReviews === 0) {
                         return;
                     }
@@ -113,14 +157,11 @@
                     });
                 });
 
-                // Skip empty charts
                 if (chartData.length === 0) {
                     return;
                 }
 
-                // Create a container for the chart
                 const chartDiv = document.createElement('div');
-                chartDiv.style.height = '400px';  // Increased height for better display
                 chartContainer.appendChild(chartDiv);
 
                 const options = {
@@ -164,7 +205,7 @@
                             xKey: 'appId', 
                             yKey: 'neutral', 
                             yName: 'Neutral', 
-                            fill: 'pink',
+                            fill: 'gray',
                             label: {
                                 enabled: true,
                                 color: 'black',
